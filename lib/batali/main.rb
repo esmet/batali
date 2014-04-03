@@ -1,9 +1,6 @@
-# Mario is a command-line interface to Batali
-
 require 'ostruct'
 require 'optparse'
-
-load 'lib/batali.rb'
+require_relative '../batali.rb' # TODO: This almost certainly can be cleaner
 
 options = {}
 OptionParser.new do |parser|
@@ -43,12 +40,12 @@ OptionParser.new do |parser|
   end
 
   parser.on("--cluster <name>", String, "The name of the cluster that Batali will operate on") do |name|
-    options.cluster_name = name
+    options.cluster = name
   end
 end.parse!
 
 if options.verbose
-  puts "Mario: running with options #{options.inspect}"
+  puts "main: running with options #{options.inspect}"
 end
 
 batali = Batali.new(options)
