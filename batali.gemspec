@@ -16,6 +16,9 @@ Gem::Specification.new do |gem|
   gem.version       = Batali::VERSION
 
   gem.add_dependency "ridley", ">= 2.5.1"
+  gem.add_dependency "ridley-connectors", ">= 1.7.1"
   gem.add_dependency "pmap", "~> 1.0.1"
   gem.add_dependency "fog", "~> 1.21.0"
+  gem.add_dependency "unf"
+  gem.add_dependency "celluloid", "~> 0.16.0.pre"
 end

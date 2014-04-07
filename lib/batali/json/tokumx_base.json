@@ -1,0 +1,14 @@
+{
+  "mongodb": {
+    "user": "tokumx",
+    "group": "tokumx",
+    "package_name": "tokumx",
+    "config": {
+      "dbpath": "/mnt/tokumx_data",
+      "logpath": "/var/log/tokumx/tokumx.log"
+    },
+    "dbconfig_file": "/etc/tokumx.conf",
+    "instance_name": "tokumx",
+    "default_init_name": "tokumx"
+  }
+}

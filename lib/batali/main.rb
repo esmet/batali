@@ -50,3 +50,7 @@ end
 
 batali = Batali.new(options)
 batali.cook(options)
+
+if options.verbose
+  puts "main: done"
+end
