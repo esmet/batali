@@ -12,6 +12,8 @@ OptionParser.new do |parser|
   options.rs_members = 1
   options.mongos_routers = 1
   options.cluster = 'batali_default'
+  options.teardown = false
+  options.dry = false
 
   parser.banner = "Usage: batali.rb [options]"
 
@@ -42,15 +44,23 @@ OptionParser.new do |parser|
   parser.on("--cluster <name>", String, "The name of the cluster that Batali will operate on") do |name|
     options.cluster = name
   end
+
+  parser.on("--[no-]teardown", "Whether to teardown the cluster provided by --cluster") do |teardown|
+    options.teardown = teardown
+  end
+
+  parser.on("--[no-]dry", "Whether to perform a dry run (print the steps, don't actually do them)") do |dry|
+    options.dry = dry
+  end
 end.parse!
 
-if options.verbose
-  puts "main: running with options #{options.inspect}"
-end
+puts "main: running with options #{options.inspect}" if options.verbose
 
 batali = Batali.new(options)
-batali.cook(options)
-
-if options.verbose
-  puts "main: done"
+if options.teardown
+  batali.teardown(options)
+else
+  batali.cook(options)
 end
+
+puts "main: done" if options.verbose

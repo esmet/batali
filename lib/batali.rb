@@ -7,11 +7,13 @@ require 'ostruct'
 require 'pmap'
 require 'ridley'
 
+require_relative 'batali/server.rb'
+
 module Batali
 
   class << self
     # TODO Document options
-    def new(options = {})
+    def new(options)
       Ridley::Logging.logger.level = Logger.const_get 'ERROR'
 
       # TODO SSL should be an option. Once it is, we can use the from_config_file
@@ -23,13 +25,9 @@ module Batali
       config[:server_url]       = config.delete(:chef_server_url)
       config[:ssl]              = { verify: false }
       config[:ssh]              = { user: 'ubuntu', keys: config[:knife][:aws_identity_file] }
-      # TODO: Verify that knife.rb has:
-      #       - aws_identity_file
-      #       - aws_access_key_id
-      #       - aws_secret_access_key
-      #       - others?
+      @config = config
 
-      @ridley = Ridley.new(config)
+      @ridley = Ridley.new(@config)
       cookbooks = Hash[@ridley.cookbook.all.collect { |cookbook| [ cookbook[0], cookbook[1] ] }]
       ['apt', 'mongodb', 'tokumx'].each do |name|
         print "checking for cookbook #{name}... "
@@ -41,46 +39,7 @@ module Batali
         end
       end
 
-      @aws = Fog::Compute.new(
-        provider:               'AWS',
-        aws_access_key_id:      config[:knife][:aws_access_key_id],
-        aws_secret_access_key:  config[:knife][:aws_secret_access_key],
-        region:                 config[:knife][:region] || "us-east-1",
-      )
-      @all_aws_servers = Hash[@aws.servers.all.collect { |server| [ server.tags["Name"].to_s, server ] if server.state == "running" }.compact]
-      @config = config
       self
-    end
-
-    # Use the knife-ec2 command line tool because wrangling with fog
-    # plus ridley bootstrap is hard to get right.
-    #
-    # @param name [String] name of the server to bootstrap - if none exists it will be provisioned
-    # @param recipes [Array] String recipes to run
-    # @param attributes [Hash] attributes for knife bootstrap
-    private
-    def bootstrap_named_server(name, recipes, attributes)
-      if @all_aws_servers[name]
-        puts "-- bootstrap: skipping server #{name}, a server with that name already exists"
-        return
-      end
-      puts "-- bootstrap: spinning up server #{name}"
-
-      # TODO: Parameterize all of the hardcoded stuff below so that it can come out of @config
-      identity_file = @config[:knife][:aws_identity_file]
-      run_list = recipes.map{ |recipe| "recipe[#{recipe}]" } * ","
-      json_attributes_s = attributes.to_json.to_s
-      knife_cmd = [
-        'knife',              "ec2 server create",
-        '--config',           ".batali/knife.rb",
-        '--identity-file',    "\'#{identity_file}\'",
-        '--node-name',        "\'#{name}\'",
-        '--ssh-user',         "ubuntu",
-        '--run-list',         "\'#{run_list}\'",
-        '--json-attributes',  "\'#{json_attributes_s}\'",
-      ]
-      ok = system(knife_cmd * ' ')
-      raise if !ok
     end
 
     # @param [hash] hash
@@ -95,7 +54,9 @@ module Batali
     # foobar, it's Chef role is foobar.
     public
     def cook(options = {})
-      puts "batali: beginning to cook"
+      puts "batali: cooking up cluster #{options.cluster}"
+      cluster = Cluster.new(options, @config)
+
       base_attributes = JSON.parse(
         File.read(File.expand_path('../batali/json/tokumx_base.json', __FILE__)),
         symbolize_names: true
@@ -126,7 +87,7 @@ module Batali
           bootstrap_args << [ name, base_recipes + ['mongodb::replicaset', 'mongodb::shard'], shard_attributes ]
         end
       end
-      bootstrap_args.pmap { |name, recipe, attributes| bootstrap_named_server(name, recipe, attributes) }
+      bootstrap_args.pmap { |name, recipe, attributes| cluster.spinup(name, recipe, attributes) }
 
       # mongos routers 
       bootstrap_args = []
@@ -137,8 +98,18 @@ module Batali
         mongos_attributes[:mongodb][:config].delete(:dbpath)
         bootstrap_args << [ name, base_recipes + ['mongodb::mongos'], mongos_attributes ]
       end
-      bootstrap_args.pmap { |name, recipe, attributes| bootstrap_named_server(name, recipe, attributes) }
-      puts "batali: done cooking"
+      bootstrap_args.pmap { |name, recipe, attributes| cluster.spinup(name, recipe, attributes) }
+
+      puts "batali: note: you may need to ssh into mongos and do 'sudo chef-client' to properly join all shards"
+      puts "batali: done"
+    end
+
+    public
+    def teardown(options = {})
+      puts "batali: tearing down cluster #{options.cluster}"
+      cluster = Cluster.new(options, @config)
+      cluster.teardown
+      puts "batali: done"
     end
   end
 end
