@@ -88,11 +88,18 @@ module Batali
     end
 
     public
-    def teardown(options = {})
+    def teardown(options)
       puts "batali: tearing down cluster #{options.cluster}"
       cluster = Cluster.new(options, @config)
       cluster.teardown
       puts "batali: done"
+    end
+
+    public
+    def show(options)
+      cluster = Cluster.new(options, @config)
+      servers = cluster.all_servers.collect { |name, server| [ name, server.dns_name ] }
+      Hash[servers]
     end
   end
 end
