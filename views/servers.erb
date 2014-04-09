@@ -1,0 +1,37 @@
+<div>
+  <h1>Running servers</h1>
+ 
+  <p>
+  <table cellpadding="10" id="hor-minimalist-b" summary="Running servers">
+    <style>
+      table, td, td {
+        border: 1px solid black;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 90%;
+        border-spacing: 0px;
+      }
+      td {
+        padding-right: 200px;
+      }
+    </style>
+    <thead>
+      <tr id="header">
+        <td><b> Name </b></td>
+        <td><b> URL </b></td>
+      <tr>
+    </thead>
+    <tbody>
+      <% @servers.each do |name, dns_name| %>
+        <tr>
+          <td><%= name %></td>
+          <td><%= dns_name %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  </p>
+</div>
+
+<div id="footer">
+  <p><b>A minimalistic Sinatra App for Batali</b>.</p>
+</div>

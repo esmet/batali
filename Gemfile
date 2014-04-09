@@ -17,3 +17,5 @@ gem 'unf'
 # rspec testing
 gem 'rspec'
 gem 'rspec-mocks'
+# sinatra web service
+gem 'sinatra'
