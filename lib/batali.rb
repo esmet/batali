@@ -1,8 +1,6 @@
 require 'rubygems'
 require 'bundler/setup'
 
-require 'fog'
-require 'ostruct'
 require 'pmap'
 require 'ridley'
 
