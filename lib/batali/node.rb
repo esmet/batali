@@ -6,7 +6,9 @@ module Batali
 
     # setup attributes and recipes common to all nodes.
     def initialize(options)
-      @name = @name_prefix
+      raise if options.cluster.nil? || options.cluster.empty?
+
+      @name = options.cluster
       @recipes = [ 'apt', 'tokumx::tokutek_repo' ]
       @attributes = JSON.parse(
         # TODO: Make this nicer
@@ -14,7 +16,6 @@ module Batali
         symbolize_names: true
       ).to_hash
       @attributes[:mongodb][:cluster_name] = options.cluster
-      @name_prefix = options.cluster
     end
 
     # @param [hash] hash
@@ -25,17 +26,17 @@ module Batali
     end
 
     class ConfigServer < Node
-      def initialize(options, configserver_num)
+      def initialize(options, configserver_num = 0)
         super(options)
-        @name = "#{@name_prefix}_configserver#{configserver_num}"
+        @name += "_configserver#{configserver_num}"
         @recipes += [ 'mongodb::configserver', 'mongodb::shard' ]
       end
     end
 
     class Shard < Node
-      def initialize(options, shard_num, rs_num)
+      def initialize(options, shard_num = 0, rs_num = 0)
         super(options)
-        @name = "#{@name_prefix}_shard#{shard_num}_rs#{rs_num}"
+        @name += "_shard#{shard_num}_rs#{rs_num}"
         @recipes += [ 'mongodb::replicaset', 'mongodb::shard' ]
         shard_attributes = deeply_copy_hash(@attributes)
         shard_attributes[:mongodb][:config][:expireOplogDays] = 1
@@ -47,9 +48,9 @@ module Batali
     end
 
     class Mongos < Node
-      def initialize(options, which)
+      def initialize(options, which = 0)
         super(options)
-        @name = "#{@name_prefix}_mongos#{which}"
+        @name += "_mongos#{which}"
         @recipes += [ 'mongodb::mongos' ]
 
         # mongos does not appreciate the dbpath parameter
