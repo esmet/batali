@@ -14,3 +14,6 @@ gem 'pmap'
 gem 'fog'
 # fog complains otherwise
 gem 'unf'
+# rspec testing
+gem 'rspec'
+gem 'rspec-mocks'
