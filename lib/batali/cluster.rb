@@ -1,3 +1,5 @@
+require 'fog'
+require 'ostruct'
 require 'pmap'
 
 module Batali
@@ -21,7 +23,7 @@ module Batali
       )
     end
 
-    private
+    public
     def all_servers
       servers = @aws.servers.all.collect do |server|
         name = server.tags["Name"].to_s
@@ -51,21 +53,25 @@ module Batali
         '--run-list',         "\'#{run_list}\'",
         '--json-attributes',  "\'#{json_attributes_s}\'",
       ]
+
       cmd = knife_cmd * ' '
       if @options.dry
         puts "dry run: #{cmd}"
-      else
-        ok = system(cmd)
-        raise if !ok
+        return true
       end
+
+      system(cmd)
     end
 
     public
     def spinup(name, recipes, attributes)
       if all_servers[name]
         puts "-- spinup: skipping server #{name}, a server with that name already exists"
+        false
       else
-        knife_ec2_server_create(name, recipes, attributes)
+        ok = knife_ec2_server_create(name, recipes, attributes)
+        raise if !ok # TODO: Handle this in main.rb
+        true
       end
     end
 
@@ -85,19 +91,25 @@ module Batali
         '--yes',
         "\'#{instance_id}\'"
       ]
+
       cmd = knife_cmd * ' '
       if @options.dry
         puts "dry run: #{cmd}"
-      else
-        ok = system(cmd)
-        raise if !ok
+        return true
       end
+
+      system(cmd)
     end
 
     # Teardown the entire cluster
     public
     def teardown()
-      all_servers.peach { |name, server| knife_ec2_server_delete(name, server.id) }
+      n = all_servers.size
+      all_servers.peach do |name, server| 
+        ok = knife_ec2_server_delete(name, server.id)
+        raise if !ok # TODO: Handle this in main.rb
+      end
+      n
     end
   end
 end
