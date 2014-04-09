@@ -3,17 +3,18 @@ require 'ostruct'
 require_relative '../lib/batali/cluster.rb'
 
 class AwsServerMock
-  attr_reader :tags, :state, :key_name
+  attr_reader :tags, :state, :key_name, :id
   def initialize server_name, state, key_name
     @tags = { "Name" => server_name }
     @state = state
     @key_name = key_name
+    @id = "mockid-#{server_name}_#{key_name}"
   end
 end
 
 class FogComputeMock
   attr_reader :servers
-  def initialize all_mocked_servers 
+  def initialize all_mocked_servers = []
     @servers = OpenStruct.new({ all: all_mocked_servers })
   end
 end
@@ -134,6 +135,7 @@ describe Cluster do
 
       before :each do
         allow_any_instance_of(Cluster).to receive(:knife_ec2_server_create).and_return(true)
+        allow_any_instance_of(Cluster).to receive(:knife_ec2_server_delete).and_return(true)
         Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
         @cluster = Cluster.new test_options, test_config
       end
@@ -147,12 +149,21 @@ describe Cluster do
           expect(ok).to be_true
         end
 
-        it "should skip servers that already exist" do
-          ok = @cluster.spinup "#{test_cluster_name}_server0", "recipes", { attr: 1 }
-          expect(ok).to be_false
+        it "should raise an error when trying to spin up a server that already exist" do
+          lambda { @cluster.spinup "#{test_cluster_name}_server0", "recipes", { attr: 1 } }.should raise_error
+          lambda { @cluster.spinup "#{test_cluster_name}_server1", "recipes", { attr: 1 } }.should raise_error
+        end
+      end
 
-          ok = @cluster.spinup "#{test_cluster_name}_server1", "recipes", { attr: 1 }
-          expect(ok).to be_false
+      describe "#teardown" do
+        it "returns N when tearing down an N-node cluster" do
+          expect(@cluster.teardown).to eq(sample_servers.size)
+        end
+
+        it "returns 0 when tearing down an empty cluster" do
+          Fog::Compute.stub(:new) { FogComputeMock.new }
+          cluster = Cluster.new test_options, test_config
+          expect(cluster.teardown).to eq(0)
         end
       end
     end
