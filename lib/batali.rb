@@ -40,6 +40,12 @@ module Batali
       self
     end
 
+    private
+    def spinup_node(cluster, node)
+      ok = cluster.spinup(node.name, node.recipes, node.attributes)
+      raise if !ok
+    end
+
     # Cook up a cluster using the given options. I should document them soon.
     # Nodes are named by the role they are performing. If there's a node named
     # foobar, it's Chef role is foobar.
@@ -53,24 +59,29 @@ module Batali
       # are done, bootstrap the mongos routers, which use Chef server state
       # to tie everything together.
 
+      existing_servers = cluster.all_servers
+
       # config servers / shards
       nodes_to_spinup = []
       options.config_servers.times do |i|
-        nodes_to_spinup << Node::ConfigServer.new(options, i)
+        node = Node::ConfigServer.new(options, i)
+        nodes_to_spinup << node if existing_servers[node.name].nil?
       end
       options.shards.times do |shard_num|
         options.rs_members.times do |rs_num|
-          nodes_to_spinup << Node::Shard.new(options, shard_num, rs_num)
+          node = Node::Shard.new(options, shard_num, rs_num)
+          nodes_to_spinup << node if existing_servers[node.name].nil?
         end
       end
-      nodes_to_spinup.pmap { |node| cluster.spinup(node.name, node.recipes, node.attributes) }
+      nodes_to_spinup.pmap { |node| spinup_node(cluster, node }
 
       # mongos routers 
       nodes_to_spinup = []
       options.mongos_routers.times do |i|
-        nodes_to_spinup << Node::Mongos.new(options, i)
+        node << Node::Mongos.new(options, i)
+        nodes_to_spinup << node if existing_servers[node.name].nil?
       end
-      nodes_to_spinup.pmap { |node| cluster.spinup(node.name, node.recipes, node.attributes) }
+      nodes_to_spinup.pmap { |node| spinup_node(cluster, node) }
 
       puts "batali: note: you may need to ssh into mongos and do 'sudo chef-client' to properly join all shards"
       puts "batali: done"

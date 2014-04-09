@@ -65,14 +65,8 @@ module Batali
 
     public
     def spinup(name, recipes, attributes)
-      if all_servers[name]
-        puts "-- spinup: skipping server #{name}, a server with that name already exists"
-        false
-      else
-        ok = knife_ec2_server_create(name, recipes, attributes)
-        raise if !ok # TODO: Handle this in main.rb
-        true
-      end
+      raise "A server named #{name} already exists" if all_servers[name]
+      knife_ec2_server_create(name, recipes, attributes)
     end
 
     # Use the knife-ec2 command line tool because wrangling with fog
@@ -107,7 +101,7 @@ module Batali
       n = all_servers.size
       all_servers.peach do |name, server| 
         ok = knife_ec2_server_delete(name, server.id)
-        raise if !ok # TODO: Handle this in main.rb
+        raise "teardown failed after #{n} servers" if !ok
       end
       n
     end
