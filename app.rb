@@ -2,21 +2,26 @@ require 'rubygems'
 require 'bundler/setup'
 
 require 'sinatra'
+require 'sinatra/url_for'
+
 require 'ostruct'
 require_relative 'lib/batali'
 
 set :bind, '0.0.0.0'
 set :port, '5757'
+set :public_folder, 'public'
 
 options = OpenStruct.new knife_config_file: '.batali/knife.rb', dry: true
 batali = Batali.new options
-puts 'WebService: initialized Batali'
 
-get '/' do
-  erb :index
+get '/?' do
+  redirect url_for('/dashboard')
 end
 
-get '/servers/:name' do |name|
-  @servers = batali.show OpenStruct.new(cluster: name)
-  erb :servers
+get '/dashboard' do
+  @servers = {}
+  if params[:search]
+    @servers = batali.show OpenStruct.new(cluster: params[:search])
+  end
+  erb :dashboard
 end

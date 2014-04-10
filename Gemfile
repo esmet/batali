@@ -19,3 +19,4 @@ gem 'rspec'
 gem 'rspec-mocks'
 # sinatra web service
 gem 'sinatra'
+gem 'emk-sinatra-url-for'
