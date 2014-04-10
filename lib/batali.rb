@@ -4,39 +4,23 @@ require 'bundler/setup'
 require 'pmap'
 require 'ridley'
 
-require_relative 'batali/node.rb'
+require_relative 'batali/chef.rb'
 require_relative 'batali/cluster.rb'
+require_relative 'batali/node.rb'
 
 module Batali
-
   class << self
     # TODO Document options
     def new(options)
-      Ridley::Logging.logger.level = Logger.const_get 'ERROR'
-
-      # TODO SSL should be an option. Once it is, we can use the from_config_file
-      #      constructor, which seems to not properly accept ssl.verify = false
-      config = Ridley::Chef::Config.new(options.knife_config_file).to_hash
-      config[:validator_client] = config.delete(:validation_client_name)
-      config[:validator_path]   = config.delete(:validation_key)
-      config[:client_name]      = config.delete(:node_name)
-      config[:server_url]       = config.delete(:chef_server_url)
-      config[:ssl]              = { verify: false }
-      config[:ssh]              = { user: 'ubuntu', keys: config[:knife][:aws_identity_file] }
-      @config = config
-
-      @ridley = Ridley.new(@config)
-      cookbooks = Hash[@ridley.cookbook.all.collect { |cookbook| [ cookbook[0], cookbook[1] ] }]
+      @chef = Chef.new options
+      # check that required cookbooks are available through Chef
+      cookbooks = @chef.cookbooks
       ['apt', 'mongodb', 'tokumx'].each do |name|
-        print "checking for cookbook #{name}... "
         if cookbooks[name].nil?
-          puts "not found. please ensure that it is uploaded to the Chef server."
-          raise
-        else
-          puts "ok"
+          raise "#{name}: cookbook not found on chef server, please upload it"
         end
       end
-
+      @config = @chef.config
       self
     end
 
@@ -50,8 +34,7 @@ module Batali
     # Nodes are named by the role they are performing. If there's a node named
     # foobar, it's Chef role is foobar.
     public
-    def cook(options = {})
-      puts "batali: cooking up cluster #{options.cluster}"
+    def cook(options)
       cluster = Cluster.new(options, @config)
 
       # Bootstrap the config servers and shards in parallel, since they do not
@@ -82,17 +65,12 @@ module Batali
         nodes_to_spinup << node if existing_servers[node.name].nil?
       end
       nodes_to_spinup.pmap { |node| spinup_node(cluster, node) }
-
-      puts "batali: note: you may need to ssh into mongos and do 'sudo chef-client' to properly join all shards"
-      puts "batali: done"
     end
 
     public
     def teardown(options)
-      puts "batali: tearing down cluster #{options.cluster}"
       cluster = Cluster.new(options, @config)
       cluster.teardown
-      puts "batali: done"
     end
 
     public
