@@ -11,7 +11,7 @@ set :port, '5757'
 set :public_folder, 'public'
 
 require_relative 'lib/batali'
-options = OpenStruct.new knife_config_file: '.batali/knife.rb', dry: true
+options = OpenStruct.new knife_config_file: '.batali/knife.rb'
 batali = Batali.new options
 
 get '/?' do
@@ -21,7 +21,7 @@ end
 get '/dashboard' do
   @servers = {}
   if params[:search]
-    @servers = batali.show OpenStruct.new(cluster: params[:search])
+    @servers = batali.show(OpenStruct.new(cluster: params[:search])).sort
   end
   erb :dashboard
 end
@@ -30,8 +30,9 @@ get '/create_cluster/?' do
   erb :create_cluster
 end
 
-def default_one(x)
-  x.to_i <= 0 ? 1 : x
+def default_one(field)
+  x = field.to_i
+  x <= 0 ? 1 : x
 end
 
 post '/create_cluster' do
@@ -44,7 +45,6 @@ post '/create_cluster' do
       shards:         default_one(params[:shards]),
       rs_members:     default_one(params[:rs_members]),
       mongos_routers: default_one(params[:mongos_routers]),
-      dry: true
     })
     thr = Thread.new do
       batali.cook @options

@@ -114,16 +114,18 @@ describe Cluster do
       })
     end
 
-    it "only returns servers in the running state" do
+    it "only returns servers in the running or pending state" do
       sample_servers = [
         AwsServerMock.new("#{test_cluster_name}_server0", 'terminated', 'esmet'),
         AwsServerMock.new("#{test_cluster_name}_server1", 'annihilated', 'esmet'),
         AwsServerMock.new("#{test_cluster_name}_server2", 'running', 'esmet'),
+        AwsServerMock.new("#{test_cluster_name}_server3", 'pending', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
       cluster.all_servers.should eql({
         "#{test_cluster_name}_server2" => sample_servers[2],
+        "#{test_cluster_name}_server3" => sample_servers[3],
       })
     end
 

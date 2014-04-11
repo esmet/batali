@@ -27,7 +27,10 @@ module Batali
     def all_servers
       servers = @aws.servers.all.collect do |server|
         name = server.tags["Name"].to_s
-        [ name, server ] if name.match(/^#{@cluster_name}/) && server.state == "running" && server.key_name == "esmet"
+        if name.match(/^#{@cluster_name}/) && server.key_name == "esmet"
+           (server.state == "running" || server.state == "pending") &&
+          [ name, server ] 
+        end
       end.compact
       Hash[servers]
     end
@@ -99,9 +102,11 @@ module Batali
     public
     def teardown()
       n = all_servers.size
-      all_servers.peach do |name, server| 
-        ok = knife_ec2_server_delete(name, server.id)
-        raise "teardown failed after #{n} servers" if !ok
+      all_servers.each_slice(8).to_a.each do |slice|
+        slice.peach do |name, server| 
+          ok = knife_ec2_server_delete(name, server.id)
+          raise "teardown failed to delete server #{name}" if !ok
+        end
       end
       n
     end
