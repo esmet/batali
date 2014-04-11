@@ -61,7 +61,7 @@ module Batali
       # mongos routers 
       nodes_to_spinup = []
       options.mongos_routers.times do |i|
-        node << Node::Mongos.new(options, i)
+        node = Node::Mongos.new(options, i)
         nodes_to_spinup << node if existing_servers[node.name].nil?
       end
       nodes_to_spinup.pmap { |node| spinup_node(cluster, node) }
