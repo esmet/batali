@@ -5,12 +5,12 @@ require 'sinatra'
 require 'sinatra/url_for'
 
 require 'ostruct'
-require_relative 'lib/batali'
 
 set :bind, '0.0.0.0'
 set :port, '5757'
 set :public_folder, 'public'
 
+require_relative 'lib/batali'
 options = OpenStruct.new knife_config_file: '.batali/knife.rb', dry: true
 batali = Batali.new options
 
@@ -24,4 +24,32 @@ get '/dashboard' do
     @servers = batali.show OpenStruct.new(cluster: params[:search])
   end
   erb :dashboard
+end
+
+get '/create_cluster/?' do
+  erb :create_cluster
+end
+
+def default_one(x)
+  x.to_i <= 0 ? 1 : x
+end
+
+post '/create_cluster' do
+  @status = ''
+  @options = OpenStruct.new
+  if params[:cluster] && params[:cluster] != ""
+    @options = OpenStruct.new({
+      cluster:        params[:cluster],
+      config_servers: default_one(params[:config_servers]),
+      shards:         default_one(params[:shards]),
+      rs_members:     default_one(params[:rs_members]),
+      mongos_routers: default_one(params[:mongos_routers]),
+      dry: true
+    })
+    thr = Thread.new do
+      batali.cook @options
+    end
+    @status = 'ok'
+  end
+  erb :create_cluster
 end

@@ -1,0 +1,56 @@
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+  <h1 class="page-header">Cluster</h1>
+  <% if @status == 'ok' %>
+  <h2 class="sub-header">Request sent</h2>
+  <p>
+  Your request has been sent to Batali. The cluster should be online in 5-10 minutes.
+  <br><br>
+  </p>
+  You can monitor its status <a href="/dashboard?search=<%= @options.cluster %>">on the dashboard</a>.
+  <% else %> 
+  <h2 class="sub-header">Create cluster</h2>
+  <h5 class="sub-header">Specify at least one option to get default values for the others</h2>
+  <form class="form-horizontal" role="form" method="post" action="/create_cluster">
+    <div class="form-group">
+      <label for="cluster" class="col-sm-2 control-label">Cluster</label>
+      <div class="col-sm-10">
+        <input name="cluster" type="text" class="form-control" id="NameField" 
+        placeholder="Cluster name, which prefixes each server in the cluster">
+      </div>
+    </div>
+    <div class="form-group">
+      <label  for="config_servers" class="col-sm-2 control-label">Configs</label>
+      <div class="col-sm-10">
+        <input name="config_servers" type="text" class="form-control" id="ConfigField" 
+        placeholder="Number of config servers (default 1)">
+      </div>
+    </div>
+    <div class="form-group">
+      <label  for="shards" class="col-sm-2 control-label">Shards</label>
+      <div class="col-sm-10">
+        <input name="shards" type="text" class="form-control" id="ShardsField" 
+        placeholder="Numer of shards (default 1)">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="rs_members" class="col-sm-2 control-label">Replicas</label>
+      <div class="col-sm-10">
+        <input name="rs_members" type="text" class="form-control" id="ReplicasField" 
+        placeholder="Number of replica set members per shard (default 1)">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="mongos_routers" class="col-sm-2 control-label">Routers</label>
+      <div class="col-sm-10">
+        <input name="mongos_routers" type="text" class="form-control" id="MongosField" 
+        placeholder="Number of mongos routers (default 1)">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-10">
+        <button type="submit" class="btn btn-default">Create!</button>
+      </div>
+    </div>
+  </form>
+  <% end %> 
+</div>
