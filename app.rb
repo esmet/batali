@@ -20,7 +20,7 @@ end
 
 get '/dashboard' do
   @servers = {}
-  if params[:search]
+  if (params[:search] || '') != ''
     @servers = batali.show(OpenStruct.new(cluster: params[:search])).sort
   end
   erb :dashboard

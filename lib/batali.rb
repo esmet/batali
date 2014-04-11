@@ -26,7 +26,7 @@ module Batali
 
     private
     def spinup_node(cluster, node)
-      ok = cluster.spinup(node.name, node.recipes, node.attributes)
+      ok = cluster.spinup(cluster, node.name, node.recipes, node.attributes)
       raise if !ok
     end
 

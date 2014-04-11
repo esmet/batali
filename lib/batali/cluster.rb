@@ -5,10 +5,9 @@ require 'pmap'
 module Batali
   class Cluster
     def initialize(options, config)
+      raise "Cluster needs a valid name in options.cluster" if (options.cluster || '') == ''
       @options = options
       @config = config
-      @cluster_name = options.cluster
-      raise "Cluster needs a name" if @cluster_name.nil?
 
       # TODO: Verify that config
       #       - aws_identity_file
@@ -26,10 +25,10 @@ module Batali
     public
     def all_servers
       servers = @aws.servers.all.collect do |server|
-        name = server.tags["Name"].to_s
-        if name.match(/^#{@cluster_name}/) && server.key_name == "esmet"
-           (server.state == "running" || server.state == "pending") &&
-          [ name, server ] 
+        if server.tags["BataliCluster"].to_s == @options.cluster &&
+           server.key_name == "esmet" &&
+           (server.state == "running" || server.state == "pending")
+          [ server.tags["Name"].to_s, server ]
         end
       end.compact
       Hash[servers]
@@ -42,7 +41,7 @@ module Batali
     # @param recipes [Array] recipes to run
     # @param attributes [Hash] attributes to use during bootstrap
     private
-    def knife_ec2_server_create(name, recipes, attributes)
+    def knife_ec2_server_create(cluster, name, recipes, attributes)
       puts "knife ec2 server create: name #{name}"
       identity_file = @config[:knife][:aws_identity_file]
       run_list = recipes.map{ |recipe| "recipe[#{recipe}]" } * ","
@@ -55,6 +54,7 @@ module Batali
         '--ssh-user',         "ubuntu",
         '--run-list',         "\'#{run_list}\'",
         '--json-attributes',  "\'#{json_attributes_s}\'",
+        '--tags',             "BataliCluster=\'#{cluster}\'",
       ]
 
       cmd = knife_cmd * ' '
@@ -67,9 +67,9 @@ module Batali
     end
 
     public
-    def spinup(name, recipes, attributes)
-      raise "A server named #{name} already exists" if all_servers[name]
-      knife_ec2_server_create(name, recipes, attributes)
+    def spinup(cluster, name, recipes, attributes)
+      raise "A server named #{name} already exists in cluster #{cluster}" if all_servers[name]
+      knife_ec2_server_create(cluster, name, recipes, attributes)
     end
 
     # Use the knife-ec2 command line tool because wrangling with fog

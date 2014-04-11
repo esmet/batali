@@ -4,8 +4,8 @@ require_relative '../lib/batali/cluster.rb'
 
 class AwsServerMock
   attr_reader :tags, :state, :key_name, :id
-  def initialize server_name, state, key_name
-    @tags = { "Name" => server_name }
+  def initialize cluster, server_name, state, key_name
+    @tags = { "Name" => server_name, "BataliCluster" => cluster }
     @state = state
     @key_name = key_name
     @id = "mockid-#{server_name}_#{key_name}"
@@ -41,7 +41,7 @@ describe Cluster do
 
   describe "#new" do
     let :test_servers do
-      [ AwsServerMock.new('server', 'state', 'key_name') ]
+      [ AwsServerMock.new('cluster_name', 'server', 'state', 'key_name') ]
     end
     let :test_fog_compute_mock do
       FogComputeMock.new test_servers
@@ -58,13 +58,16 @@ describe Cluster do
     end
     
     it "raises an error when cluster is missing from the options parameter" do
-      lambda { Cluster.new OpenStruct.new, test_config }.should raise_error
+      expect { Cluster.new OpenStruct.new, test_config } .to raise_error
+    end
+    
+    it "raises an error when cluster is the empty string" do
+      expect { Cluster.new OpenStruct.new(cluster: ''), test_config } .to raise_error
     end
 
     it "sets the options, config, and cluster_name fields properly" do
       @cluster.instance_variable_get(:@options).should eql test_options
       @cluster.instance_variable_get(:@config).should eql test_config
-      @cluster.instance_variable_get(:@cluster_name).should eql test_cluster_name
     end
 
     it "creates an instance of Fog::Compute and stores it in @aws" do
@@ -75,8 +78,8 @@ describe Cluster do
   describe "#all_servers" do
     it "returns a hash of string names => server" do
       sample_servers = [
-        AwsServerMock.new("#{test_cluster_name}_server0", 'running', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server1", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
@@ -88,10 +91,10 @@ describe Cluster do
 
     it "only returns servers whose name tag is prefixed by the cluster name" do
       sample_servers = [
-        AwsServerMock.new("#{test_cluster_name}_server0", 'running', 'esmet'),
-        AwsServerMock.new("innocent_cluster_server0", 'running', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server1", 'running', 'esmet'),
-        AwsServerMock.new("innocent_cluster_server1", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
+        AwsServerMock.new("innocent", "innocent_cluster_server0", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet'),
+        AwsServerMock.new("innocent", "innocent_cluster_server1", 'running', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
@@ -103,9 +106,9 @@ describe Cluster do
 
     it "only returns servers that were created by the api key 'esmet'" do
       sample_servers = [
-        AwsServerMock.new("#{test_cluster_name}_server0", 'running', 'rfp'),
-        AwsServerMock.new("#{test_cluster_name}_server1", 'running', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server2", 'running', 'leifwalsh'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'rfp'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server2", 'running', 'leifwalsh'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
@@ -116,10 +119,10 @@ describe Cluster do
 
     it "only returns servers in the running or pending state" do
       sample_servers = [
-        AwsServerMock.new("#{test_cluster_name}_server0", 'terminated', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server1", 'annihilated', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server2", 'running', 'esmet'),
-        AwsServerMock.new("#{test_cluster_name}_server3", 'pending', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'terminated', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'annihilated', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server2", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server3", 'pending', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
@@ -131,8 +134,8 @@ describe Cluster do
 
     describe "server management" do
       let :sample_servers do
-        [ AwsServerMock.new("#{test_cluster_name}_server0", 'running', 'esmet'),
-          AwsServerMock.new("#{test_cluster_name}_server1", 'running', 'esmet') ]
+        [ AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
+          AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet') ]
       end
 
       before :each do
@@ -144,16 +147,16 @@ describe Cluster do
 
       describe "#spinup" do
         it "should create servers that do not exist" do
-          ok = @cluster.spinup "#{test_cluster_name}_server100", "recipes", { attr: 1 }
+          ok = @cluster.spinup test_cluster_name, "#{test_cluster_name}_server100", "recipes", { attr: 1 }
           expect(ok).to be_true
 
-          ok = @cluster.spinup "another_cluster_name_server0", "recipes", { attr: 1 }
+          ok = @cluster.spinup test_cluster_name, "another_cluster_name_server0", "recipes", { attr: 1 }
           expect(ok).to be_true
         end
 
         it "should raise an error when trying to spin up a server that already exist" do
-          lambda { @cluster.spinup "#{test_cluster_name}_server0", "recipes", { attr: 1 } }.should raise_error
-          lambda { @cluster.spinup "#{test_cluster_name}_server1", "recipes", { attr: 1 } }.should raise_error
+          lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server0", "recipes", { attr: 1 } }.should raise_error
+          lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server1", "recipes", { attr: 1 } }.should raise_error
         end
       end
 
@@ -171,5 +174,3 @@ describe Cluster do
     end
   end
 end
-
-
