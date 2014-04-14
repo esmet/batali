@@ -19,11 +19,35 @@ get '/?' do
 end
 
 get '/dashboard' do
-  @servers = {}
-  if (params[:search] || '') != ''
-    @servers = batali.show(OpenStruct.new(cluster: params[:search])).sort
+  filter = params[:filter] || ''
+  clusters = batali.clusters.collect do |cluster|
+    if filter == '' ||
+       cluster.match(filter) ||
+       cluster.include?(filter)
+      cluster
+    end
+  end.compact
+
+  erb :dashboard, :locals => {
+    header: 'Dashboard',
+    sub_header: "#{clusters.size} cluster#{clusters.size == 1 ? '' : 's'} online",
+    clusters: clusters,
+  }
+end
+
+get '/show_cluster' do
+  name = params[:name] || ''
+  servers = {}
+  if name != ''
+    servers = batali.show(OpenStruct.new(cluster: params[:name])).sort
   end
-  erb :dashboard
+
+  erb :show_cluster, :locals => {
+    header: name == '' ?  "Search clusters" : "Showing cluster '#{name}'",
+    sub_header: servers.size > 0 ? "#{servers.size} servers found" : "No servers found",
+    column_names: [ 'Name', 'URL' ],
+    table_rows: servers.collect { |name, dns_name| [ name, dns_name ] },
+  }
 end
 
 get '/create_cluster/?' do
@@ -36,20 +60,24 @@ def default_one(field)
 end
 
 post '/create_cluster' do
-  @status = ''
-  @options = OpenStruct.new
-  if params[:cluster] && params[:cluster] != ""
-    @options = OpenStruct.new({
-      cluster:        params[:cluster],
+  status = ''
+  name = (params[:cluster] || '')
+  if name != ''
+    options = OpenStruct.new({
+      cluster:        name,
       config_servers: default_one(params[:config_servers]),
       shards:         default_one(params[:shards]),
       rs_members:     default_one(params[:rs_members]),
       mongos_routers: default_one(params[:mongos_routers]),
     })
     thr = Thread.new do
-      batali.cook @options
+      batali.cook options
     end
-    @status = 'ok'
+    status = 'ok'
   end
-  erb :create_cluster
+
+  erb :create_cluster, :locals => {
+    status: status,
+    name: name,
+  }
 end

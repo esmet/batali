@@ -75,7 +75,50 @@ describe Cluster do
     end
   end
 
-  describe "#all_servers" do
+  describe "#name" do
+    it "returns the name of the cluster provided by the options to #new" do
+      Fog::Compute.stub(:new) { FogComputeMock.new [] }
+      cluster = Cluster.new test_options, test_config
+      expect(cluster.name).to be(test_options.cluster)
+    end
+  end
+
+  describe "#clusters" do
+    it "returns a set of string names, one for each cluster" do
+      sample_servers = [
+        AwsServerMock.new('cluster0', "cluster0_server0", 'running', 'esmet'),
+        AwsServerMock.new('cluster1', "cluster1_server1", 'running', 'esmet'),
+        AwsServerMock.new('cluster1', "cluster1_server2", 'running', 'esmet'),
+      ]
+      Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
+      Cluster.clusters(test_config).should eql Set.new(['cluster0', 'cluster1'])
+    end
+
+    it "returns no cluster names if there are no servers at all" do
+      Fog::Compute.stub(:new) { FogComputeMock.new [] }
+      Cluster.clusters(test_config).should eql Set.new
+    end
+
+    it "returns a cluster name if at least one member is running" do
+      sample_servers = [
+        AwsServerMock.new('cluster0', "cluster0_server0", 'running', 'esmet'),
+        AwsServerMock.new('cluster0', "cluster0_server1", 'terminated', 'esmet'),
+      ]
+      Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
+      Cluster.clusters(test_config).should eql Set.new(['cluster0'])
+    end
+
+    it "returns no clusters if no servers are in the running state" do
+      sample_servers = [
+        AwsServerMock.new('cluster0', "cluster0_server0", 'terminated', 'esmet'),
+        AwsServerMock.new('cluster1', "cluster1_server0", 'terminated', 'esmet'),
+      ]
+      Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
+      Cluster.clusters(test_config).should eql Set.new
+    end
+  end
+
+  describe "#servers" do
     it "returns a hash of string names => server" do
       sample_servers = [
         AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
@@ -83,7 +126,7 @@ describe Cluster do
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
-      cluster.all_servers.should eql({
+      cluster.servers.should eql({
         "#{test_cluster_name}_server0" => sample_servers[0],
         "#{test_cluster_name}_server1" => sample_servers[1],
       })
@@ -98,7 +141,7 @@ describe Cluster do
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
-      cluster.all_servers.should eql({
+      cluster.servers.should eql({
         "#{test_cluster_name}_server0" => sample_servers[0],
         "#{test_cluster_name}_server1" => sample_servers[2],
       })
@@ -112,7 +155,7 @@ describe Cluster do
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
-      cluster.all_servers.should eql({
+      cluster.servers.should eql({
         "#{test_cluster_name}_server1" => sample_servers[1],
       })
     end
@@ -126,50 +169,50 @@ describe Cluster do
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
       cluster = Cluster.new test_options, test_config
-      cluster.all_servers.should eql({
+      cluster.servers.should eql({
         "#{test_cluster_name}_server2" => sample_servers[2],
         "#{test_cluster_name}_server3" => sample_servers[3],
       })
     end
+  end
 
-    describe "server management" do
-      let :sample_servers do
-        [ AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
-          AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet') ]
+  describe "server management" do
+    let :sample_servers do
+      [ AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server0", 'running', 'esmet'),
+        AwsServerMock.new(test_cluster_name, "#{test_cluster_name}_server1", 'running', 'esmet') ]
+    end
+
+    before :each do
+      allow_any_instance_of(Cluster).to receive(:knife_ec2_server_create).and_return(true)
+      allow_any_instance_of(Cluster).to receive(:knife_ec2_server_delete).and_return(true)
+      Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
+      @cluster = Cluster.new test_options, test_config
+    end
+
+    describe "#spinup" do
+      it "should create servers that do not exist" do
+        ok = @cluster.spinup test_cluster_name, "#{test_cluster_name}_server100", "recipes", { attr: 1 }
+        expect(ok).to be_true
+
+        ok = @cluster.spinup test_cluster_name, "another_cluster_name_server0", "recipes", { attr: 1 }
+        expect(ok).to be_true
       end
 
-      before :each do
-        allow_any_instance_of(Cluster).to receive(:knife_ec2_server_create).and_return(true)
-        allow_any_instance_of(Cluster).to receive(:knife_ec2_server_delete).and_return(true)
-        Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
-        @cluster = Cluster.new test_options, test_config
+      it "should raise an error when trying to spin up a server that already exist" do
+        lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server0", "recipes", { attr: 1 } }.should raise_error
+        lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server1", "recipes", { attr: 1 } }.should raise_error
+      end
+    end
+
+    describe "#teardown" do
+      it "returns N when tearing down an N-node cluster" do
+        expect(@cluster.teardown).to eq(sample_servers.size)
       end
 
-      describe "#spinup" do
-        it "should create servers that do not exist" do
-          ok = @cluster.spinup test_cluster_name, "#{test_cluster_name}_server100", "recipes", { attr: 1 }
-          expect(ok).to be_true
-
-          ok = @cluster.spinup test_cluster_name, "another_cluster_name_server0", "recipes", { attr: 1 }
-          expect(ok).to be_true
-        end
-
-        it "should raise an error when trying to spin up a server that already exist" do
-          lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server0", "recipes", { attr: 1 } }.should raise_error
-          lambda { @cluster.spinup test_cluster_name, "#{test_cluster_name}_server1", "recipes", { attr: 1 } }.should raise_error
-        end
-      end
-
-      describe "#teardown" do
-        it "returns N when tearing down an N-node cluster" do
-          expect(@cluster.teardown).to eq(sample_servers.size)
-        end
-
-        it "returns 0 when tearing down an empty cluster" do
-          Fog::Compute.stub(:new) { FogComputeMock.new }
-          cluster = Cluster.new test_options, test_config
-          expect(cluster.teardown).to eq(0)
-        end
+      it "returns 0 when tearing down an empty cluster" do
+        Fog::Compute.stub(:new) { FogComputeMock.new }
+        cluster = Cluster.new test_options, test_config
+        expect(cluster.teardown).to eq(0)
       end
     end
   end

@@ -4,30 +4,60 @@ require 'pmap'
 
 module Batali
   class Cluster
-    def initialize(options, config)
-      raise "Cluster needs a valid name in options.cluster" if (options.cluster || '') == ''
-      @options = options
-      @config = config
+    attr_reader :name
 
+    private
+    def self.aws(config)
       # TODO: Verify that config
       #       - aws_identity_file
       #       - aws_access_key_id
       #       - aws_secret_access_key
       #       - others?
-      @aws = Fog::Compute.new(
+      Fog::Compute.new(
         provider:               'AWS',
-        aws_access_key_id:      @config[:knife][:aws_access_key_id],
-        aws_secret_access_key:  @config[:knife][:aws_secret_access_key],
-        region:                 @config[:knife][:region] || "us-east-1",
+        aws_access_key_id:      config[:knife][:aws_access_key_id],
+        aws_secret_access_key:  config[:knife][:aws_secret_access_key],
+        region:                 config[:knife][:region] || "us-east-1",
       )
     end
 
+    def initialize(options, config)
+      raise "Cluster needs a valid name in options.cluster" if (options.cluster || '') == ''
+      @name = options.cluster
+      @options = options
+      @config = config
+      @aws = self.class.aws(config)
+    end
+
+    # @return true if the given server found on aws is ok for Batali to use
+    private
+    def self.server_ok_to_use(server)
+      # only use servers created by "esmet" that are in the running or pending state
+      server.key_name == "esmet" && (server.state == "running" || server.state == "pending")
+    end
+
+    # TODO Passing the config here is poor design.
+    #
+    # @param config, the knife/batali config (aws key id / access key / etc) 
+    # @return Set (String) all cluster names that Batali knows about
+    def self.clusters(config)
+      clusters = Set.new
+      aws(config).servers.all.each do |server|
+        cluster_tag = server.tags["BataliCluster"].to_s
+        if server_ok_to_use(server) && cluster_tag != ''
+          clusters.add(cluster_tag)
+        end
+      end
+      clusters
+    end
+
+
+    # @return Hash (server name, server) of all servers running in this cluster
     public
-    def all_servers
+    def servers
       servers = @aws.servers.all.collect do |server|
-        if server.tags["BataliCluster"].to_s == @options.cluster &&
-           server.key_name == "esmet" &&
-           (server.state == "running" || server.state == "pending")
+        if self.class.server_ok_to_use(server) &&
+           server.tags["BataliCluster"].to_s == @name
           [ server.tags["Name"].to_s, server ]
         end
       end.compact
@@ -68,7 +98,7 @@ module Batali
 
     public
     def spinup(cluster, name, recipes, attributes)
-      raise "A server named #{name} already exists in cluster #{cluster}" if all_servers[name]
+      raise "A server named #{name} already exists in cluster #{cluster}" if servers[name]
       knife_ec2_server_create(cluster, name, recipes, attributes)
     end
 
@@ -101,8 +131,8 @@ module Batali
     # Teardown the entire cluster
     public
     def teardown()
-      n = all_servers.size
-      all_servers.each_slice(8).to_a.each do |slice|
+      n = servers.size
+      servers.each_slice(8).to_a.each do |slice|
         slice.peach do |name, server| 
           ok = knife_ec2_server_delete(name, server.id)
           raise "teardown failed to delete server #{name}" if !ok

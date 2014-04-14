@@ -26,7 +26,7 @@ module Batali
 
     private
     def spinup_node(cluster, node)
-      ok = cluster.spinup(cluster, node.name, node.recipes, node.attributes)
+      ok = cluster.spinup(cluster.name, node.name, node.recipes, node.attributes)
       raise if !ok
     end
 
@@ -42,7 +42,7 @@ module Batali
       # are done, bootstrap the mongos routers, which use Chef server state
       # to tie everything together.
 
-      existing_servers = cluster.all_servers
+      existing_servers = cluster.servers
 
       # config servers / shards
       nodes_to_spinup = []
@@ -76,8 +76,13 @@ module Batali
     public
     def show(options)
       cluster = Cluster.new(options, @config)
-      servers = cluster.all_servers.collect { |name, server| [ name, server.dns_name ] }
+      servers = cluster.servers.collect { |name, server| [ name, server.dns_name ] }
       Hash[servers]
+    end
+
+    public
+    def clusters
+      Cluster::clusters(@config)
     end
   end
 end

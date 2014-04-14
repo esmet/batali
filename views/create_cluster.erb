@@ -1,15 +1,14 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">Cluster</h1>
-  <% if @status == 'ok' %>
+  <% if status == 'ok' %>
   <h2 class="sub-header">Request sent</h2>
   <p>
   Your request has been sent to Batali. The cluster should be online in 5-10 minutes.
   <br><br>
   </p>
-  You can monitor its status <a href="/dashboard?search=<%= @options.cluster %>">on the dashboard</a>.
+  You can monitor its status <a href="/show_cluster?name=<%= name %>">on the dashboard</a>.
   <% else %> 
-  <h2 class="sub-header">Create cluster</h2>
-  <h5 class="sub-header">Specify at least one option to get default values for the others</h2>
+  <h2 class="sub-header">Create a cluster</h2>
+  <h4 class="sub-header">Cluster name is required</h4>
   <form class="form-horizontal" role="form" method="post" action="/create_cluster">
     <div class="form-group">
       <label for="cluster" class="col-sm-2 control-label">Cluster</label>
