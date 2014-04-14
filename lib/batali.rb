@@ -25,9 +25,11 @@ module Batali
     end
 
     private
-    def spinup_node(cluster, node)
-      ok = cluster.spinup(cluster.name, node.name, node.recipes, node.attributes)
-      raise if !ok
+    def spinup_nodes(cluster, nodes)
+      nodes.each do |node|
+        ok = cluster.spinup(cluster.name, node.name, node.recipes, node.attributes)
+        raise if !ok
+      end
     end
 
     # Cook up a cluster using the given options. I should document them soon.
@@ -42,29 +44,32 @@ module Batali
       # are done, bootstrap the mongos routers, which use Chef server state
       # to tie everything together.
 
+      spinup_slice = 4 # run no more than spinup 4 jobs in parallel
       existing_servers = cluster.servers
 
       # config servers / shards
-      nodes_to_spinup = []
+      node_sets = []
       options.config_servers.times do |i|
         node = Node::ConfigServer.new(options, i)
-        nodes_to_spinup << node if existing_servers[node.name].nil?
+        node_sets << [ node ] if existing_servers[node.name].nil?
       end
       options.shards.times do |shard_num|
+        rs_set = []
         options.rs_members.times do |rs_num|
           node = Node::Shard.new(options, shard_num, rs_num)
-          nodes_to_spinup << node if existing_servers[node.name].nil?
+          rs_set << node if existing_servers[node.name].nil?
         end
+        node_sets << rs_set
       end
-      nodes_to_spinup.each_slice(8).to_a.each { |slice| slice.pmap { |node| spinup_node(cluster, node ) } }
+      node_sets.each_slice(spinup_slice).to_a.each { |slice| slice.pmap { |nodes| spinup_nodes(cluster, nodes ) } }
 
       # mongos routers 
-      nodes_to_spinup = []
+      mongos_routers = []
       options.mongos_routers.times do |i|
         node = Node::Mongos.new(options, i)
-        nodes_to_spinup << node if existing_servers[node.name].nil?
+        mongos_routers << [ node ] if existing_servers[node.name].nil?
       end
-      nodes_to_spinup.each_slice(8).to_a.each { |slice| slice.pmap { |node| spinup_node(cluster, node) } }
+      mongos_routers.each_slice(spinup_slice).to_a.each { |slice| slice.pmap { |nodes| spinup_nodes(cluster, nodes) } }
     end
 
     public

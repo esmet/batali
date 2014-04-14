@@ -61,9 +61,9 @@ def default_one(field)
 end
 
 post '/create_cluster' do
-  status = ''
   name = (params[:name] || '')
   if name != ''
+    # create the cluster..
     options = OpenStruct.new({
       cluster:        name,
       config_servers: default_one(params[:config_servers]),
@@ -71,30 +71,38 @@ post '/create_cluster' do
       rs_members:     default_one(params[:rs_members]),
       mongos_routers: default_one(params[:mongos_routers]),
     })
+    # (on a background thread)
     thr = Thread.new do
       batali.cook options
     end
-    status = 'ok'
+    # ..then show the request sent page with the given name
+    erb :request_sent, :locals => {
+      name: name
+    }
+  else
+    # show the create page
+    erb :create_cluster
   end
-
-  erb :create_cluster, :locals => {
-    status: status,
-    name: name,
-  }
 end
 
 get '/teardown_cluster' do
   name = (params[:name] || '')
   if name != ''
+    # teardown the cluster..
     options = OpenStruct.new({
       cluster:  name,
       teardown: true,
-      dry:      true,
     })
+    # (on a background thread)
     thr = Thread.new do
       batali.teardown options
     end
+    # ..then show the request sent page with the given name
+    erb :request_sent, :locals => {
+      name: name
+    }
+  else
+    # just show the manage page for empty teardown requests
+    redirect url_for("/manage_cluster?name=#{name}")
   end
-
-  redirect url_for("/manage_cluster?name=#{name}")
 end
