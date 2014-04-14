@@ -41,16 +41,18 @@ module Batali
     # @param config, the knife/batali config (aws key id / access key / etc) 
     # @return Set (String) all cluster names that Batali knows about
     def self.clusters(config)
-      clusters = Set.new
+      clusters = Hash.new
       aws(config).servers.all.each do |server|
         cluster_tag = server.tags["BataliCluster"].to_s
         if server_ok_to_use(server) && cluster_tag != ''
-          clusters.add(cluster_tag)
+          if clusters[cluster_tag].nil?
+            clusters[cluster_tag] = Hash.new
+          end
+          clusters[cluster_tag][server.tags["Name"].to_s] = server
         end
       end
       clusters
     end
-
 
     # @return Hash (server name, server) of all servers running in this cluster
     public
@@ -132,7 +134,7 @@ module Batali
     public
     def teardown()
       n = servers.size
-      servers.each_slice(8).to_a.each do |slice|
+      servers.each_slice(4).to_a.each do |slice|
         slice.peach do |name, server| 
           ok = knife_ec2_server_delete(name, server.id)
           raise "teardown failed to delete server #{name}" if !ok

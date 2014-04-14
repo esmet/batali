@@ -20,3 +20,5 @@ gem 'rspec-mocks'
 # sinatra web service
 gem 'sinatra'
 gem 'emk-sinatra-url-for'
+# how is this not part of regular ruby?
+gem 'time_diff'

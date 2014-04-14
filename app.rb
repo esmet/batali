@@ -5,6 +5,7 @@ require 'sinatra'
 require 'sinatra/url_for'
 
 require 'ostruct'
+require 'time_diff'
 
 set :bind, '0.0.0.0'
 set :port, '5757'
@@ -20,13 +21,14 @@ end
 
 get '/dashboard' do
   filter = params[:filter] || ''
-  clusters = batali.clusters.collect do |cluster|
+  clusters = batali.clusters.collect do |cluster, servers|
     if filter == '' ||
        cluster.match(filter) ||
        cluster.include?(filter)
-      cluster
+      [ cluster, servers ]
     end
   end.compact
+  clusters = Hash[clusters]
 
   erb :dashboard, :locals => {
     header: 'Dashboard',

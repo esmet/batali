@@ -84,37 +84,40 @@ describe Cluster do
   end
 
   describe "#clusters" do
-    it "returns a set of string names, one for each cluster" do
+    it "returns a Hash mapping cluster name to some data" do
       sample_servers = [
         AwsServerMock.new('cluster0', "cluster0_server0", 'running', 'esmet'),
         AwsServerMock.new('cluster1', "cluster1_server1", 'running', 'esmet'),
         AwsServerMock.new('cluster1', "cluster1_server2", 'running', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
-      Cluster.clusters(test_config).should eql Set.new(['cluster0', 'cluster1'])
+      clusters = Cluster.clusters(test_config);
+      expect(clusters).to be_an_instance_of(Hash)
+      expect(clusters.size).to eql 2
+      expect(clusters.keys).to eql ['cluster0', 'cluster1']
     end
 
-    it "returns no cluster names if there are no servers at all" do
+    it "returns nothing if there are no servers" do
       Fog::Compute.stub(:new) { FogComputeMock.new [] }
-      Cluster.clusters(test_config).should eql Set.new
+      expect(Cluster.clusters(test_config)).to eql Hash.new
     end
 
-    it "returns a cluster name if at least one member is running" do
+    it "returns a cluster if at least one member is running" do
       sample_servers = [
         AwsServerMock.new('cluster0', "cluster0_server0", 'running', 'esmet'),
         AwsServerMock.new('cluster0', "cluster0_server1", 'terminated', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
-      Cluster.clusters(test_config).should eql Set.new(['cluster0'])
+      expect(Cluster.clusters(test_config).keys).to eql ['cluster0']
     end
 
-    it "returns no clusters if no servers are in the running state" do
+    it "returns nothing if no servers are in the running state" do
       sample_servers = [
         AwsServerMock.new('cluster0', "cluster0_server0", 'terminated', 'esmet'),
         AwsServerMock.new('cluster1', "cluster1_server0", 'terminated', 'esmet'),
       ]
       Fog::Compute.stub(:new) { FogComputeMock.new sample_servers }
-      Cluster.clusters(test_config).should eql Set.new
+      expect(Cluster.clusters(test_config).keys).to eql []
     end
   end
 
