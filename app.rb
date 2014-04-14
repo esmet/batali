@@ -35,14 +35,14 @@ get '/dashboard' do
   }
 end
 
-get '/show_cluster' do
+get '/manage_cluster' do
   name = params[:name] || ''
   servers = {}
   if name != ''
     servers = batali.show(OpenStruct.new(cluster: params[:name])).sort
   end
 
-  erb :show_cluster, :locals => {
+  erb :manage_cluster, :locals => {
     header: name == '' ?  "Search clusters" : "Showing cluster '#{name}'",
     sub_header: servers.size > 0 ? "#{servers.size} servers found" : "No servers found",
     column_names: [ 'Name', 'URL' ],
