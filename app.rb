@@ -45,6 +45,7 @@ get '/manage_cluster' do
   erb :manage_cluster, :locals => {
     header: name == '' ?  "Search clusters" : "Showing cluster '#{name}'",
     sub_header: servers.size > 0 ? "#{servers.size} servers found" : "No servers found",
+    cluster_name: name,
     column_names: [ 'Name', 'URL' ],
     table_rows: servers.collect { |name, dns_name| [ name, dns_name ] },
   }
@@ -61,7 +62,7 @@ end
 
 post '/create_cluster' do
   status = ''
-  name = (params[:cluster] || '')
+  name = (params[:name] || '')
   if name != ''
     options = OpenStruct.new({
       cluster:        name,
@@ -80,4 +81,20 @@ post '/create_cluster' do
     status: status,
     name: name,
   }
+end
+
+get '/teardown_cluster' do
+  name = (params[:name] || '')
+  if name != ''
+    options = OpenStruct.new({
+      cluster:  name,
+      teardown: true,
+      dry:      true,
+    })
+    thr = Thread.new do
+      batali.teardown options
+    end
+  end
+
+  redirect url_for("/manage_cluster?name=#{name}")
 end

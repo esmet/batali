@@ -10,7 +10,7 @@
             <th><%= column_name%></th>
           <% end %>
           <th>
-            <form class="navbar-form navbar-right" method="get" action="/show_cluster">
+            <form class="navbar-form navbar-right" method="get" action="/manage_cluster">
               <input type="text" name="name" class="form-control" placeholder="Search...">
             </form>
           </th>
@@ -28,6 +28,7 @@
     </table>
   </div>
   <% end %>
-  <br><br>
   <a href="/dashboard">Back to dashboard</a>
+  <br><br>
+  <a href="/teardown_cluster?name=<%= cluster_name %>" class="btn btn-danger btn-large" title="">Tear down cluster <i class="icon-fire"></i></a>
 </div>
