@@ -1,6 +1,7 @@
 require 'fog'
 require 'ostruct'
 require 'pmap'
+require 'open3'
 
 module Batali
   class Cluster
@@ -95,7 +96,16 @@ module Batali
         return true
       end
 
-      system(cmd)
+      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+        while line = stdout.gets
+          puts line
+        end
+
+        exit_status = wait_thr.value
+        unless exit_status.success?
+          puts "warning: knife cmd '#{cmd}' failed!"
+        end
+      end
     end
 
     public
@@ -127,7 +137,16 @@ module Batali
         return true
       end
 
-      system(cmd)
+      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+        while line = stdout.gets
+          puts line
+        end
+
+        exit_status = wait_thr.value
+        unless exit_status.success?
+          puts "warning: knife cmd '#{cmd}' failed!"
+        end
+      end
     end
 
     # Teardown the entire cluster
