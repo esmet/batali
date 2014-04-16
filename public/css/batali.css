@@ -1,11 +1,15 @@
 body {
-  background-image: url('/assets/img/kitchen.jpg'); 
+  background: -moz-linear-gradient(top, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.45) 100%), url(/assets/img/kitchen.jpg), url(/assets/img/kitchen.jpg);
+  background: -moz-linear-gradient(top, rgba(220,220,220,0.45) 0%, rgba(220,220,220,0.45) 100%), url(/assets/img/kitchen.jpg);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, rgba(220,220,220,0.45)), color-stop(100%, rgba(220,220,220,0.45))), url(/assets/img/kitchen.jpg);
+  background: -webkit-linear-gradient(top, rgba(220,220,220,0.45) 0%, rgba(220,220,220,0.45) 100%), url(/assets/img/kitchen.jpg);
+  background: -o-linear-gradient(top, rgba(220,220,220,0.45) 0%, rgba(220,220,220,0.45) 100%), url(/assets/img/kitchen.jpg);
+  background: -ms-linear-gradient(top, rgba(220,220,220,0.45) 0%, rgba(220,220,220,0.45) 100%), url(/assets/img/kitchen.jpg);
+  background: linear-gradient(to bottom, rgba(220,220,220,0.45) 0%, rgba(220,220,220,0.45) 100%), url(/assets/img/kitchen.jpg);
   -webkit-background-size: cover;
   -moz-background-size: cover;
   -o-background-size: cover;
   background-size: cover;
-  background-position: 0px -175px;
-  background-repeat: no-repeat;
 }
 
 .navbar {
@@ -17,5 +21,5 @@ body {
 }
 
 #sub_layout {
-  background-color: rgba(245, 241, 222, .78);
+  background-color: rgba(245, 245, 245, .78);
 }
