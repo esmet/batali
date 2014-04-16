@@ -53,17 +53,24 @@ get '/manage_cluster' do
   }
 end
 
-def expand_create_page(locals = {})
+def get_modify_page_for_create(locals = {})
   locals = {
     header: 'Create a cluster',
     sub_header: "Choose a quantity for each server. Flavor applies to all.",
+    create: true,
     error_message: '',
   }.merge(locals)
-  erb :create_cluster, locals: locals
+  erb :modify_cluster, locals: locals
 end
 
-get '/create_cluster/?' do
-  expand_create_page
+def get_modify_page_for_modify(locals = {})
+  locals = {
+    header: 'Modify a cluster',
+    sub_header: "Choose a new quantity for each server (will only expand the cluster).",
+    create: false,
+    error_message: '',
+  }.merge(locals)
+  erb :modify_cluster, locals: locals
 end
 
 def default_one(field)
@@ -71,33 +78,68 @@ def default_one(field)
   x <= 0 ? 1 : x
 end
 
-post '/create_cluster' do
+# by some absolute ridiculous black magic, the 'batali'
+# parameter here is necessary, otherwise sinatra just
+# fails silently (SILENTLY) the first time you reference it.
+def do_modify_and_get_request_sent_page(batali, params)
+  # create the cluster..
+  name = params[:name]
+  options = OpenStruct.new({
+    cluster:        name,
+    config_servers: default_one(params[:config_servers]),
+    shards:         default_one(params[:shards]),
+    rs_members:     default_one(params[:rs_members]),
+    mongos_routers: default_one(params[:mongos_routers]),
+    flavor:         params[:flavor] || '',
+  })
+  # (on a background thread)
+  thr = Thread.new do
+    batali.cook options
+  end
+  # ..then show the request sent page with the given name
+  erb :request_sent, :locals => {
+    name: name
+  }
+end
+
+# modify cluster
+
+get '/modify_cluster' do
   name = (params[:name] || '')
   if name != ''
-    # create the cluster..
-    options = OpenStruct.new({
-      cluster:        name,
-      config_servers: default_one(params[:config_servers]),
-      shards:         default_one(params[:shards]),
-      rs_members:     default_one(params[:rs_members]),
-      mongos_routers: default_one(params[:mongos_routers]),
-      flavor:         params[:flavor] || '',
-    })
-    # (on a background thread)
-    thr = Thread.new do
-      batali.cook options
-    end
-    # ..then show the request sent page with the given name
-    erb :request_sent, :locals => {
-      name: name
-    }
-  else
-    # show the create page with an error message
-    expand_create_page({
-      error_message: "Need to provide a cluster name"
-    })
+    get_modify_page_for_modify params
   end
 end
+
+post '/modify_cluster' do
+  name = (params[:name] || '')
+  if name != ''
+    do_modify_and_get_request_sent_page batali, params
+  end
+end
+
+# create cluster
+
+get '/create_cluster/?' do
+  get_modify_page_for_create
+end
+
+post '/create_cluster' do
+  name = (params[:name] || '')
+  if name == ''
+    get_modify_page_for_create({
+      error_message: "Need to provide a cluster name"
+    })
+  elsif batali.clusters.include?(name)
+    get_modify_page_for_create({
+      error_message: "A cluster named '#{name}' already exists"
+    })
+  else
+    do_modify_and_get_request_sent_page batali, params
+  end
+end
+
+# teardown cluster
 
 get '/teardown_cluster' do
   name = (params[:name] || '')
@@ -115,8 +157,5 @@ get '/teardown_cluster' do
     erb :request_sent, :locals => {
       name: name
     }
-  else
-    # just show the manage page for empty teardown requests
-    redirect url_for("/manage_cluster?name=#{name}")
   end
 end

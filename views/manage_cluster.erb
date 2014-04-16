@@ -21,6 +21,16 @@
     </tbody>
   </table>
 </div>
-<a href="/teardown_cluster?name=<%= cluster_name %>" class="btn btn-default btn-danger">Tear down  <span class="glyphicon glyphicon-fire"></span></a>
-<p></p>
+<div>
+
+<div class="btn-group col-sm-12">
+  <a href="/modify_cluster?name=<%= cluster_name %>" class="btn btn-default btn-success">Scale up  <span class="glyphicon glyphicon-leaf"></span></a>
+  <a href="/teardown_cluster?name=<%= cluster_name %>" class="btn btn-default btn-danger pull-right">Tear down  <span class="glyphicon glyphicon-fire"></span></a>
+</div>
+
+<!-- for some reason we need a single space in a paragrph to get some padding
+between the above button and the body's background -->
+<div class="btn-group col-sm-12">
+  <p> </p>
+</div>
 <% end %>
