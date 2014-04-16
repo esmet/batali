@@ -23,3 +23,7 @@ body {
 #sub_layout {
   background-color: rgba(215, 215, 215, .78);
 }
+
+h1, h2, h3, h4, h5 {
+  text-align: center;
+}

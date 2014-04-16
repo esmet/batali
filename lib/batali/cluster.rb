@@ -68,19 +68,16 @@ module Batali
     end
 
     # @param cmd, the shell command to run
-    # @param dry, whether this is a dry run and we should simply print cmd
     private
-    def popen3(cmd, dry)
+    def popen3(cmd)
       if @options.dry
         puts "dry run: #{cmd}"
         return true
+      else
+        puts "popen3 #{cmd}"
       end
 
       Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
-        while line = stdout.gets
-          puts line
-        end
-
         success = wait_thr.value.success?
         unless success
           puts "warning: knife cmd '#{cmd}' failed!"
