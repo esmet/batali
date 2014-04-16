@@ -12,7 +12,7 @@ set :port, '5757'
 set :public_folder, 'public'
 
 require_relative 'lib/batali'
-options = OpenStruct.new knife_config_file: '.batali/knife.rb'
+options = OpenStruct.new(knife_config_file: '.batali/knife.rb', verbose: true)
 batali = Batali.new options
 
 get '/?' do
@@ -46,7 +46,7 @@ get '/manage_cluster' do
 
   erb :manage_cluster, :locals => {
     header: name == '' ?  "Search clusters" : "Showing cluster '#{name}'",
-    sub_header: servers.size > 0 ? "#{servers.size} servers found" : "No servers found",
+    sub_header: servers.size > 0 ? "#{servers.size} server#{servers.size == 1 ? '' : 's'} found" : "No servers found",
     cluster_name: name,
     column_names: [ 'Name', 'URL' ],
     table_rows: servers.collect { |name, dns_name| [ name, dns_name ] },

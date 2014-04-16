@@ -1,34 +1,32 @@
-<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h2 class="sub-header"><%= header %></h2>
-  <h4 class="sub-header"><%= sub_header %></h4>
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead>
+<h2 class="sub-header"><%= header %></h2>
+<h4 class="sub-header"><%= sub_header %></h4>
+<div class="table-responsive">
+  <table id="clusters_table" class="table table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Servers</th>
+        <th>Uptime</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% clusters.each do |cluster, servers| %>
         <tr>
-          <th>Name</th>
-          <th>Servers</th>
-          <th>Uptime</th>
+          <td><a href="/manage_cluster?name=<%= cluster %>"><%= cluster %></a></td>
+          <td><%= servers.size %></td>
+            <% if servers.first %>
+              <td><%=
+                # Just use the first server's created_at time. That should be good enough..
+                now = DateTime.now.new_offset(0).to_time
+                created_at = DateTime.parse(servers.first[1].created_at.to_s).to_time
+                diff_components = Time.diff(now, created_at, " %d, %H, %N")
+                diff_components[:diff]
+              %></td>
+            <% else %>
+            <% end %>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        <% clusters.each do |cluster, servers| %>
-          <tr>
-            <td><a href="/manage_cluster?name=<%= cluster %>"><%= cluster %></a></td>
-            <td><%= servers.size %></td>
-              <% if servers.first %>
-                <td><%=
-                  # Just use the first server's created_at time. That should be good enough..
-                  now = DateTime.now.new_offset(0).to_time
-                  created_at = DateTime.parse(servers.first[1].created_at.to_s).to_time
-                  diff_components = Time.diff(now, created_at, " %d, %H, %N")
-                  diff_components[:diff]
-                %></td>
-              <% else %>
-              <% end %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
+      <% end %>
+    </tbody>
+  </table>
 </div>

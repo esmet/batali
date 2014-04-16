@@ -1,32 +1,26 @@
-<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h2 class="sub-header"><%= header %> </h2>
-  <h4 class="sub-header"><%= sub_header %> </h4>
-  <a href="/dashboard" class="btn btn-default btn-link">Back to dashboard</a>
-  <form class="navbar-form navbar-right" method="get" action="/manage_cluster">
-    <input type="text" name="name" class="form-control" placeholder="Search...">
-  </form>
-  <% if table_rows.size > 0 %>
-  <div class="table-responsive">
-    <table class="table table-striped">
-      <thead>
+<h2 class="sub-header"><%= header %> </h2>
+<h4 class="sub-header"><%= sub_header %> </h4>
+<% if table_rows.size > 0 %>
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <% column_names.each do |column_name| %>
+          <th><%= column_name%></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% table_rows.each do |row| %>
         <tr>
-          <% column_names.each do |column_name| %>
-            <th><%= column_name%></th>
+          <% row.each do |column| %>
+          <td><%= column %></td>
           <% end %>
         </tr>
-      </thead>
-      <tbody>
-        <% table_rows.each do |row| %>
-          <tr>
-            <% row.each do |column| %>
-            <td><%= column %></td>
-            <% end %>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
-  <% end %>
-  <br>
-  <a href="/teardown_cluster?name=<%= cluster_name %>" class="btn btn-default btn-danger">Tear down  <span class="glyphicon glyphicon-fire"></span></a>
+      <% end %>
+    </tbody>
+  </table>
 </div>
+<a href="/teardown_cluster?name=<%= cluster_name %>" class="btn btn-default btn-danger">Tear down  <span class="glyphicon glyphicon-fire"></span></a>
+<p></p>
+<% end %>

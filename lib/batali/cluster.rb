@@ -67,6 +67,32 @@ module Batali
       Hash[servers]
     end
 
+    # @param cmd, the shell command to run
+    # @param dry, whether this is a dry run and we should simply print cmd
+    private
+    def popen3(cmd, dry)
+      if @options.dry
+        puts "dry run: #{cmd}"
+        return true
+      end
+
+      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
+        while line = stdout.gets
+          puts line
+        end
+
+        success = wait_thr.value.success?
+        unless success
+          puts "warning: knife cmd '#{cmd}' failed!"
+          puts "  -- STDERR -- "
+          while line = stderr.gets
+            puts line
+          end
+        end
+        success
+      end
+    end
+
     # Use the knife-ec2 command line tool to create a server, running
     # the given recipes and setting the given attributes during bootstrap.
     #
@@ -90,22 +116,7 @@ module Batali
         '--tags',             "BataliCluster=\'#{cluster}\'",
       ]
 
-      cmd = knife_cmd * ' '
-      if @options.dry
-        puts "dry run: #{cmd}"
-        return true
-      end
-
-      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
-        while line = stdout.gets
-          puts line
-        end
-
-        exit_status = wait_thr.value
-        unless exit_status.success?
-          puts "warning: knife cmd '#{cmd}' failed!"
-        end
-      end
+      popen3(knife_cmd * ' ', @options.dry)
     end
 
     public
@@ -131,22 +142,7 @@ module Batali
         "\'#{instance_id}\'"
       ]
 
-      cmd = knife_cmd * ' '
-      if @options.dry
-        puts "dry run: #{cmd}"
-        return true
-      end
-
-      Open3.popen3(cmd) do |stdin, stdout, stderr, wait_thr|
-        while line = stdout.gets
-          puts line
-        end
-
-        exit_status = wait_thr.value
-        unless exit_status.success?
-          puts "warning: knife cmd '#{cmd}' failed!"
-        end
-      end
+      popen3(knife_cmd * ' ', @options.dry)
     end
 
     # Teardown the entire cluster
