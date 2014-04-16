@@ -99,6 +99,7 @@ module Batali
     private
     def knife_ec2_server_create(cluster, name, recipes, attributes)
       puts "knife ec2 server create: name #{name}"
+      flavor = @options.flavor || @config[:knife][:flavor] || 'm1.small'
       identity_file = @config[:knife][:aws_identity_file]
       run_list = recipes.map{ |recipe| "recipe[#{recipe}]" } * ","
       json_attributes_s = attributes.to_json.to_s
@@ -106,6 +107,7 @@ module Batali
         'knife',              "ec2 server create",
         '--config',           ".batali/knife.rb",
         '--identity-file',    "\'#{identity_file}\'",
+        '--flavor',           "\'#{flavor}\'",
         '--node-name',        "\'#{name}\'",
         '--ssh-user',         "ubuntu",
         '--run-list',         "\'#{run_list}\'",
@@ -113,7 +115,8 @@ module Batali
         '--tags',             "BataliCluster=\'#{cluster}\'",
       ]
 
-      popen3(knife_cmd * ' ', @options.dry)
+      puts "calling popen3"
+      popen3(knife_cmd * ' ')
     end
 
     public
@@ -139,7 +142,7 @@ module Batali
         "\'#{instance_id}\'"
       ]
 
-      popen3(knife_cmd * ' ', @options.dry)
+      popen3(knife_cmd * ' ')
     end
 
     # Teardown the entire cluster

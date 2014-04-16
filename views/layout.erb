@@ -53,10 +53,6 @@
       </div>
     </div>
 
-    <div id="sub_layout" class="col-sm-9 col-sm-offset-3 col-md-6 col-md-offset-3 main">
-      <%= yield %>
-    </div>
-
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
@@ -64,6 +60,10 @@
     <script src="dist/js/bootstrap.min.js"></script>
     <script src="dist/js/bootstrap-confirmation.js"></script>
     <script src="assets/js/docs.min.js"></script>
+
+    <div id="sub_layout" class="col-sm-9 col-sm-offset-3 col-md-6 col-md-offset-3 main">
+      <%= yield %>
+    </div>
 
   </body>
 </html>
