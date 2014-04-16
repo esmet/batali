@@ -81,7 +81,10 @@ module Batali
     public
     def show(options)
       cluster = Cluster.new(options, @config)
-      servers = cluster.servers.collect { |name, server| [ name, server.dns_name ] }
+      servers = cluster.servers.collect do |name, server|
+        info = { flavor: server.flavor_id, url: server.dns_name }
+        [ name, info ]
+      end
       Hash[servers]
     end
 

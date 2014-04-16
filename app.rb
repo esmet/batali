@@ -48,8 +48,8 @@ get '/manage_cluster' do
     header: name == '' ?  "Search clusters" : "Showing cluster '#{name}'",
     sub_header: servers.size > 0 ? "#{servers.size} server#{servers.size == 1 ? '' : 's'} found" : "No servers found",
     cluster_name: name,
-    column_names: [ 'Name', 'URL' ],
-    table_rows: servers.collect { |name, dns_name| [ name, dns_name ] },
+    column_names: [ 'Name', 'Flavor', 'URL' ],
+    table_rows: servers.collect { |name, server_info| [ name, server_info[:flavor], server_info[:url] ] },
   }
 end
 
