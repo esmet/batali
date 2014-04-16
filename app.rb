@@ -30,9 +30,15 @@ get '/dashboard' do
   end.compact
   clusters = Hash[clusters]
 
+  if clusters.size == 0
+    sub_header = "No clusters online"
+  else
+    sub_header = "#{clusters.size} cluster#{clusters.size == 1 ? '' : 's'} online"
+  end
+
   erb :dashboard, :locals => {
     header: 'Dashboard',
-    sub_header: "#{clusters.size} cluster#{clusters.size == 1 ? '' : 's'} online",
+    sub_header: sub_header,
     clusters: clusters,
   }
 end
