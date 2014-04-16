@@ -53,8 +53,17 @@ get '/manage_cluster' do
   }
 end
 
+def expand_create_page(locals = {})
+  locals = {
+    header: 'Create a cluster',
+    sub_header: "Choose a quantity for each server. Flavor applies to all.",
+    error_message: '',
+  }.merge(locals)
+  erb :create_cluster, locals: locals
+end
+
 get '/create_cluster/?' do
-  erb :create_cluster
+  expand_create_page
 end
 
 def default_one(field)
@@ -83,8 +92,10 @@ post '/create_cluster' do
       name: name
     }
   else
-    # show the create page
-    erb :create_cluster
+    # show the create page with an error message
+    expand_create_page({
+      error_message: "Need to provide a cluster name"
+    })
   end
 end
 

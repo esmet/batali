@@ -1,5 +1,5 @@
-<h2 class="sub-header">Create a cluster</h2>
-<h4 class="sub-header">Create a cluster that doesn't exist, or expand one that already does</h4>
+<h2 class="sub-header"><%= header %></h2>
+<h4 class="sub-header"><%= sub_header %></h4>
 <form class="form-horizontal" role="form" method="post" action="/create_cluster">
   <div class="form-group">
     <label for="name" class="col-sm-2 control-label">Cluster</label>
@@ -57,4 +57,14 @@
       <input type="submit" class="btn btn-default btn-primary" value="Create"/>
     </div>
   </div>
+  <% if !error_message.nil? && error_message != '' %>
+    <div class="col-sm-offset-2 col-sm-8 alert alert-dismissable alert-danger">
+      <p align="center"><strong><%= error_message %></strong></p>
+    </div>
+    <script>
+      $(".alert-dismissable").click(function (e) {
+        $(this).fadeOut('slow');
+      });
+    </script>
+  <% end %>
 </form>
