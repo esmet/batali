@@ -29,7 +29,7 @@ module Batali
       def initialize(options, configserver_num = 0)
         super(options)
         @name += "_configserver#{configserver_num}"
-        @recipes += [ 'mongodb::configserver', 'mongodb::shard' ]
+        @recipes += [ 'mongodb::configserver' ]
       end
     end
 
