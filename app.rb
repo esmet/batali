@@ -73,7 +73,6 @@ post '/create_cluster' do
       rs_members:     default_one(params[:rs_members]),
       mongos_routers: default_one(params[:mongos_routers]),
       flavor:         params[:flavor] || '',
-      dry: true
     })
     # (on a background thread)
     thr = Thread.new do
