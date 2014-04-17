@@ -3,6 +3,7 @@ require 'bundler/setup'
 
 require 'pmap'
 require 'ridley'
+require 'active_support/all'
 
 require_relative 'batali/chef.rb'
 require_relative 'batali/cluster.rb'

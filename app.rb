@@ -6,6 +6,7 @@ require 'sinatra/url_for'
 
 require 'ostruct'
 require 'time_diff'
+require 'active_support/all'
 
 set :bind, '0.0.0.0'
 set :port, '5757'

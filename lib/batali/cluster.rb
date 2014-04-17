@@ -99,7 +99,7 @@ module Batali
     private
     def knife_ec2_server_create(cluster, name, recipes, attributes)
       puts "knife ec2 server create: name #{name}"
-      flavor = @options.flavor || @config[:knife][:flavor] || 'm1.small'
+      flavor = @options.flavor.presence || @config[:knife][:flavor].presence || 'm1.small'
       identity_file = @config[:knife][:aws_identity_file]
       run_list = recipes.map{ |recipe| "recipe[#{recipe}]" } * ","
       json_attributes_s = attributes.to_json.to_s
