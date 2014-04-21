@@ -16,6 +16,9 @@ require_relative 'lib/batali'
 options = OpenStruct.new(knife_config_file: '.batali/knife.rb', verbose: true)
 batali = Batali.new options
 
+# without this, Threads EAT ALL EXCEPTIONS SILENTLY.
+Thread.abort_on_exception = true
+
 get '/?' do
   redirect url_for('/dashboard')
 end
